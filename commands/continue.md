@@ -7,65 +7,70 @@ allowed-tools:
 
 # Continue Development (Autonomous)
 
-Autonomously work through ALL remaining features until the project is complete.
+You will work through ALL remaining features until the project is complete. Do NOT stop after one feature.
 
-## Pre-flight Check
+## Pre-flight
 
 ```bash
 if [ ! -f feature_list.json ]; then
-  echo "ERROR: No feature_list.json found"
-  echo "Run /harness:init first to set up the project"
+  echo "ERROR: No feature_list.json found. Run /harness:init first."
   exit 1
 fi
-echo "Project found"
 ```
 
-## Orchestration Loop
+## The Loop
 
-You are the orchestrator. Your job is to loop through features and delegate each one to the `incremental-workflow` skill.
-
-### Step 1: Read the feature list
-
-Read `feature_list.json` and identify all incomplete features (where `passes` is `false`), sorted by priority.
-
-### Step 2: For EACH incomplete feature
-
-Call the `incremental-workflow` skill, passing the feature ID:
+Execute this loop until no incomplete features remain:
 
 ```
-Use the incremental-workflow skill to implement feature [FEATURE_ID]: [DESCRIPTION]
+WHILE incomplete features exist:
+    1. Get next incomplete feature (lowest priority number first)
+    2. Use the incremental-workflow skill to implement it
+    3. Check result
+    4. CONTINUE to next feature (do NOT stop)
+END WHILE
 ```
 
-The skill runs in a **forked context** - it will:
-- Implement that ONE feature
-- Verify it passes
-- Commit the changes
-- Exit back to you
+### Get Next Feature
 
-### Step 3: Check result and continue
+```bash
+jq -r '[.features[] | select(.passes == false)] | sort_by(.priority) | .[0] | "\(.id): \(.description)"' feature_list.json
+```
 
-After each skill invocation:
-- If successful: proceed to next feature
-- If blocked: log the blocker, skip to next feature
-- If all features done: report completion
+If this returns null/empty → ALL DONE. Report completion and stop.
 
-### Step 4: Repeat until done
+### Implement Feature
 
-Keep calling the skill for each feature until:
-- All features pass → Project COMPLETE
-- All remaining features are blocked → Report blockers
+Use the `incremental-workflow` skill:
 
-## Important
+> Implement feature [ID]: [DESCRIPTION]
 
-- Call the skill ONCE per feature (each call gets fresh context)
-- Pass the specific feature ID to the skill
-- Do NOT try to implement multiple features in one skill call
-- The skill handles: implementation, verification, commit, logging
+The skill runs in a forked context. It will implement, verify, commit, and return.
 
-## Final Output
+### After Each Feature
 
-When finished:
-- Total features completed this session
-- Final progress (X / Y)
+- Re-read `feature_list.json` to get the next incomplete feature
+- If feature was blocked, log it and continue to next
+- **DO NOT STOP** - immediately proceed to the next feature
+
+## Critical Rules
+
+1. **KEEP GOING** - Do not stop after one feature
+2. **ONE AT A TIME** - Use the skill once per feature (fresh context each time)
+3. **NO DIRECT IMPLEMENTATION** - Always delegate to the skill, never implement features yourself
+4. **LOOP UNTIL DONE** - Only stop when ALL features pass or all remaining are blocked
+
+## Completion
+
+When no incomplete features remain:
+
+```bash
+TOTAL=$(jq '.features | length' feature_list.json)
+DONE=$(jq '[.features[] | select(.passes)] | length' feature_list.json)
+echo "COMPLETE: $DONE / $TOTAL features"
+```
+
+Report:
+- Features completed this session
 - Any blocked features with reasons
-- Project status: COMPLETE or BLOCKED
+- Final status: COMPLETE or BLOCKED
