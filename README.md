@@ -55,12 +55,17 @@ This creates:
 ```
 
 This runs autonomously until complete:
-1. Main agent reads feature list
-2. For each incomplete feature:
-   - Calls `incremental-workflow` skill (fresh forked context)
-   - Skill implements ONE feature, commits, exits
-   - Main agent continues to next feature
-3. Stops when all features pass or all are blocked
+
+```
+WHILE incomplete features exist:
+    1. Get next feature (by priority)
+    2. Call incremental-workflow skill (fresh forked context)
+    3. Skill implements, verifies, commits
+    4. Continue to next feature
+END WHILE
+```
+
+Stops only when all features pass or all remaining are blocked.
 
 ### 3. Check Status
 
@@ -77,7 +82,17 @@ Shows progress without making changes:
 
 ## How It Works
 
-### Two Skills, Both Forked
+### Orchestrator Pattern
+
+The `/harness:continue` command acts as an **orchestrator** that loops through features. For each feature, it delegates to the `incremental-workflow` skill which runs in a **forked context** (`context: fork`). This gives each feature implementation:
+
+- Fresh context window (no token buildup)
+- Isolated execution
+- Clean return to orchestrator
+
+This is the same pattern as the proven [Motlin /todo-all method](https://motlin.com/blog/claude-code-running-for-hours), but using skills with `context: fork` instead of agents.
+
+### Two Skills
 
 | Skill | Purpose | Hooks |
 |-------|---------|-------|
