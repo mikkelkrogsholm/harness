@@ -23,13 +23,11 @@ hooks:
 
 # Incremental Workflow
 
-Implement ONE feature at a time with proper testing and documentation.
+Autonomously implement ALL features until complete. Work through features by priority, committing after each one.
 
-## Session Start Sequence
+## Session Start
 
-### 1. Orient Yourself
-
-Run this to understand current state:
+### 1. Orient
 
 ```bash
 echo "=== Project Status ==="
@@ -37,21 +35,17 @@ TOTAL=$(jq '.features | length' feature_list.json)
 DONE=$(jq '[.features[] | select(.passes == true)] | length' feature_list.json)
 echo "Progress: $DONE / $TOTAL features"
 echo ""
-echo "Last session:"
-tail -20 claude-progress.txt | grep -A5 "^## Session" | tail -6
-echo ""
 echo "Git status:"
 git status --short
 echo "======================"
 ```
 
-### 2. Check State
+### 2. Ensure Clean State
 
-If uncommitted changes exist, resolve them first:
-
-- Review what changed with `git diff`
-- Commit, stash, or discard as appropriate
-- **Never start new work on a dirty state**
+If uncommitted changes exist:
+- Review with `git diff`
+- Commit or discard
+- **Never start on dirty state**
 
 ### 3. Start Environment
 
@@ -59,27 +53,24 @@ If uncommitted changes exist, resolve them first:
 ./init.sh
 ```
 
-### 4. Smoke Test
+## Autonomous Loop
 
-Verify basic functionality still works before making changes.
+**Repeat until all features pass:**
 
-## Select Next Feature
+### For Each Feature:
 
-Find the highest priority incomplete feature:
+#### 1. Select Next
 
 ```bash
-jq -r '[.features[] | select(.passes == false)] | sort_by(.priority) | .[0] | "Next: \(.id) [\(.category)] - \(.description)"' feature_list.json
+NEXT=$(jq -r '[.features[] | select(.passes == false)] | sort_by(.priority) | .[0] | .id' feature_list.json)
+if [ "$NEXT" = "null" ] || [ -z "$NEXT" ]; then
+  echo "ALL FEATURES COMPLETE"
+  exit 0
+fi
+jq -r '.features[] | select(.id == "'$NEXT'") | "Implementing \(.id): \(.description)"' feature_list.json
 ```
 
-## Implementation Cycle
-
-### Step 1: Announce
-
-State clearly what you're working on:
-
-> "Implementing **F00X**: [description]"
-
-### Step 2: Implement
+#### 2. Implement
 
 Write minimal code for THIS feature only.
 
@@ -87,67 +78,71 @@ Write minimal code for THIS feature only.
 - No scope creep
 - No "while I'm here" fixes
 - No premature optimization
-- Log unrelated issues for later
 
-### Step 3: Verify
+#### 3. Verify
 
 Test against the feature's `verification` steps:
-
-1. Read the verification steps from feature_list.json
+1. Read verification steps from feature_list.json
 2. Actually perform each step
-3. Confirm expected behavior
-4. If any step fails, fix before proceeding
+3. If any fails, fix before proceeding
 
-### Step 4: Mark Complete
-
-Update the feature status:
+#### 4. Mark Complete
 
 ```bash
-jq '(.features[] | select(.id == "F00X")) |= . + {"passes": true, "completed_at": "'"$(date -Iseconds)"'"}' feature_list.json > tmp.json && mv tmp.json feature_list.json
+FEATURE_ID="F00X"  # Replace with actual ID
+jq '(.features[] | select(.id == "'$FEATURE_ID'")) |= . + {"passes": true, "completed_at": "'"$(date -Iseconds)"'"}' feature_list.json > tmp.json && mv tmp.json feature_list.json
 ```
 
-### Step 5: Commit
+#### 5. Commit
 
 ```bash
 git add -A
-git commit -m "feat(F00X): [description]
+git commit -m "feat($FEATURE_ID): [description]
 
 Co-Authored-By: Claude <noreply@anthropic.com>"
 ```
 
-### Step 6: Log Progress
+#### 6. Log
 
 Append to `claude-progress.txt`:
+```
+- [TIMESTAMP] Completed $FEATURE_ID: [description] ([commit hash])
+```
 
-```
-## Session: [YYYY-MM-DD HH:MM]
-- Implemented: F00X - [description]
-- Commit: [short hash from git log -1 --format=%h]
-- Next: F00Y - [description]
-- Notes: [any context for future sessions]
-```
+#### 7. Continue to Next Feature
+
+Do NOT stop. Immediately proceed to the next incomplete feature.
+
+## Stopping Conditions
+
+Only stop when:
+1. **All features pass** - Project complete
+2. **Unrecoverable blocker** - Document the issue and stop
+3. **External dependency required** - Document what's needed
+
+If a feature is blocked but others can proceed, skip it and continue. Log the blocker.
 
 ## Rules
 
 ### DO:
-- ✅ ONE feature at a time
+- ✅ Keep going until ALL features complete
 - ✅ Test before marking complete
 - ✅ Commit after each feature
-- ✅ Update progress log
-- ✅ Keep commits atomic and focused
+- ✅ Skip blocked features, continue with others
+- ✅ Log everything
 
 ### DON'T:
-- ❌ Start second feature before first is done
+- ❌ Stop after one feature (keep going!)
 - ❌ Mark complete without testing
 - ❌ Edit feature descriptions (hook blocks this)
-- ❌ Leave uncommitted changes (hook blocks this)
-- ❌ Skip verification steps
+- ❌ Leave uncommitted changes
+- ❌ Give up on first error
 
-## Output
+## Final Output
 
-After completing work, return a summary:
+When ALL features complete (or all remaining are blocked):
 
-- Features completed this session
-- Current progress (X / Y total)
-- Suggested next feature
-- Any blockers or issues encountered
+- Total features completed this session
+- Final progress (X / Y total)
+- Any blocked features with reasons
+- Project status: COMPLETE or BLOCKED

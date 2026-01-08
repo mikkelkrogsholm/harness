@@ -7,8 +7,8 @@ A Claude Code plugin for autonomous multi-session development. Based on [Anthrop
 Large projects can't be completed in a single session. This plugin provides a framework for:
 
 - **Breaking work into discrete features** - 50-200 testable features per project
-- **Implementing one feature at a time** - Focus prevents scope creep
-- **Maintaining clean state between sessions** - Git commits after each feature
+- **Autonomous execution** - Runs through ALL features without human intervention
+- **Atomic commits** - Each feature gets its own commit
 - **Preserving original specifications** - Hooks prevent editing feature descriptions
 - **Tracking progress visibly** - Session logs and git history tell the story
 
@@ -50,13 +50,12 @@ This creates:
 /harness:continue
 ```
 
-This runs the incremental workflow:
+This runs autonomously until complete:
 1. Checks project status and git state
-2. Selects next feature by priority
-3. Implements ONE feature
-4. Verifies against test criteria
-5. Commits changes
-6. Logs progress
+2. **Loops through ALL features** by priority
+3. For each: implement → verify → commit → log
+4. Skips blocked features, continues with others
+5. Stops only when all features pass or all are blocked
 
 ### 3. Check Status
 
@@ -78,7 +77,7 @@ Shows progress without making changes:
 | Skill | Purpose | Hooks |
 |-------|---------|-------|
 | `project-bootstrap` | Creates feature list, progress log, init script | Stop: Auto-commits bootstrap files |
-| `incremental-workflow` | Implements features one at a time | PreToolUse: Blocks editing feature specs<br>Stop: Requires clean git state |
+| `incremental-workflow` | Autonomously implements ALL features | PreToolUse: Blocks editing feature specs<br>Stop: Requires clean git state |
 
 ### Hook Enforcement
 
@@ -163,8 +162,8 @@ If you want to restart a project, delete the generated files:
 rm feature_list.json claude-progress.txt init.sh
 ```
 
-### Resuming After a Break
-Always run `/harness:status` first to understand where you left off.
+### Resuming After Context Limits
+If a session hits context limits before completing, just run `/harness:continue` again. It picks up where it left off.
 
 ### When Features Need Changes
 The hooks prevent editing feature descriptions to preserve original intent. If you truly need to change a feature's definition:

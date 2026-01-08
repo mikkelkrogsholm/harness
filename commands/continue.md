@@ -1,16 +1,14 @@
 ---
-description: Continue incremental development on a long-running project
+description: Autonomously implement ALL remaining features until complete
 allowed-tools:
   - Bash(*)
 ---
 
-# Continue Development
+# Continue Development (Autonomous)
 
-Continue incremental development on the current long-running project.
+Autonomously work through ALL remaining features until the project is complete.
 
 ## Pre-flight Check
-
-First, verify the project is initialized:
 
 ```bash
 if [ ! -f feature_list.json ]; then
@@ -21,27 +19,26 @@ fi
 echo "Project found"
 ```
 
-If `feature_list.json` doesn't exist, tell the user to run `/harness:init` first.
+## Behavior
 
-## Instructions
+The `incremental-workflow` skill will:
 
-Use the `incremental-workflow` skill to:
-
-1. **Orient** - Check project status, last session, git state
-2. **Select** - Pick the next feature by priority
-3. **Implement** - Write code for ONE feature
-4. **Verify** - Test against the feature's verification steps
-5. **Commit** - Create an atomic commit
-6. **Log** - Update progress file
+1. **Loop through ALL incomplete features** by priority
+2. For each feature: implement → verify → commit → log
+3. **Skip blocked features** and continue with others
+4. **Only stop when:**
+   - All features pass (project complete)
+   - All remaining features are blocked
+   - Unrecoverable error
 
 The skill runs in a forked context with hooks that:
 - Block editing feature descriptions (preserves original specs)
 - Block stopping with uncommitted changes (ensures clean state)
 
-## After Work
+## Output
 
-Return a summary of:
-- Features completed this session
-- Current progress (completed / total)
-- Suggested next feature
-- Any issues or blockers
+When finished:
+- Total features completed this session
+- Final progress (X / Y)
+- Any blocked features with reasons
+- Project status: COMPLETE or BLOCKED
