@@ -6,8 +6,31 @@
 # - There are uncommitted changes
 # - No progress was logged today (warning only)
 
+# Read JSON input from stdin (required for hooks)
+input=$(cat)
+
+# Check for recursive invocation to prevent infinite loops
+stop_hook_active=$(echo "$input" | jq -r '.stop_hook_active // false' 2>/dev/null)
+if [ "$stop_hook_active" = "true" ]; then
+  exit 0  # Allow stop on retry
+fi
+
+# Check dependencies
+for cmd in git jq; do
+  if ! command -v "$cmd" &> /dev/null; then
+    echo "Error: $cmd is required but not installed" >&2
+    exit 2
+  fi
+done
+
 # Check if we're in a long-running project
 if [ ! -f feature_list.json ]; then
+  exit 0
+fi
+
+# Check if we're in a git repository
+if ! git rev-parse --git-dir > /dev/null 2>&1; then
+  echo "Warning: Not a git repository, skipping git state check" >&2
   exit 0
 fi
 

@@ -1,5 +1,7 @@
 ---
 description: Continue incremental development on a long-running project
+allowed-tools:
+  - Bash(*)
 ---
 
 # Continue Development

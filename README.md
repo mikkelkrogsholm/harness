@@ -17,13 +17,18 @@ Large projects can't be completed in a single session. This plugin provides a fr
 ### From Local Directory
 
 ```bash
-/plugin add /path/to/harness
+claude plugin install /path/to/harness
 ```
 
-### From GitHub (when published)
+Or in Claude Code interactive mode:
+```
+/plugin install /path/to/harness
+```
+
+### From GitHub
 
 ```bash
-/plugin install harness@your-marketplace
+claude plugin install https://github.com/mikkelkrogsholm/harness
 ```
 
 ## Usage
