@@ -1,0 +1,17 @@
+{
+  "name": "harness",
+  "version": "1.0.0",
+  "description": "Framework for autonomous multi-session development. Breaks projects into discrete features and implements them one at a time with clean state between sessions.",
+  "author": {
+    "name": "Mikkel Krogsholm"
+  },
+  "license": "MIT",
+  "keywords": [
+    "autonomous",
+    "long-running",
+    "incremental",
+    "multi-session",
+    "features",
+    "workflow"
+  ]
+}
