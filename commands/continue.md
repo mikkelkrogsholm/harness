@@ -2,6 +2,7 @@
 description: Autonomously implement ALL remaining features until complete
 allowed-tools:
   - Bash(*)
+  - Read
 ---
 
 # Continue Development (Autonomous)
@@ -19,23 +20,49 @@ fi
 echo "Project found"
 ```
 
-## Behavior
+## Orchestration Loop
 
-The `incremental-workflow` skill will:
+You are the orchestrator. Your job is to loop through features and delegate each one to the `incremental-workflow` skill.
 
-1. **Loop through ALL incomplete features** by priority
-2. For each feature: implement → verify → commit → log
-3. **Skip blocked features** and continue with others
-4. **Only stop when:**
-   - All features pass (project complete)
-   - All remaining features are blocked
-   - Unrecoverable error
+### Step 1: Read the feature list
 
-The skill runs in a forked context with hooks that:
-- Block editing feature descriptions (preserves original specs)
-- Block stopping with uncommitted changes (ensures clean state)
+Read `feature_list.json` and identify all incomplete features (where `passes` is `false`), sorted by priority.
 
-## Output
+### Step 2: For EACH incomplete feature
+
+Call the `incremental-workflow` skill, passing the feature ID:
+
+```
+Use the incremental-workflow skill to implement feature [FEATURE_ID]: [DESCRIPTION]
+```
+
+The skill runs in a **forked context** - it will:
+- Implement that ONE feature
+- Verify it passes
+- Commit the changes
+- Exit back to you
+
+### Step 3: Check result and continue
+
+After each skill invocation:
+- If successful: proceed to next feature
+- If blocked: log the blocker, skip to next feature
+- If all features done: report completion
+
+### Step 4: Repeat until done
+
+Keep calling the skill for each feature until:
+- All features pass → Project COMPLETE
+- All remaining features are blocked → Report blockers
+
+## Important
+
+- Call the skill ONCE per feature (each call gets fresh context)
+- Pass the specific feature ID to the skill
+- Do NOT try to implement multiple features in one skill call
+- The skill handles: implementation, verification, commit, logging
+
+## Final Output
 
 When finished:
 - Total features completed this session

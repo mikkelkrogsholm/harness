@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo.svg" alt="Harness Logo" width="200" height="200">
+  <img src="logo.svg" alt="Harness Logo" width="400" height="400">
 </p>
 
 # Harness
@@ -55,11 +55,12 @@ This creates:
 ```
 
 This runs autonomously until complete:
-1. Checks project status and git state
-2. **Loops through ALL features** by priority
-3. For each: implement → verify → commit → log
-4. Skips blocked features, continues with others
-5. Stops only when all features pass or all are blocked
+1. Main agent reads feature list
+2. For each incomplete feature:
+   - Calls `incremental-workflow` skill (fresh forked context)
+   - Skill implements ONE feature, commits, exits
+   - Main agent continues to next feature
+3. Stops when all features pass or all are blocked
 
 ### 3. Check Status
 
@@ -81,7 +82,7 @@ Shows progress without making changes:
 | Skill | Purpose | Hooks |
 |-------|---------|-------|
 | `project-bootstrap` | Creates feature list, progress log, init script | Stop: Auto-commits bootstrap files |
-| `incremental-workflow` | Autonomously implements ALL features | PreToolUse: Blocks editing feature specs<br>Stop: Requires clean git state |
+| `incremental-workflow` | Implements ONE feature per invocation (forked) | PreToolUse: Blocks editing feature specs<br>Stop: Requires clean git state |
 
 ### Hook Enforcement
 

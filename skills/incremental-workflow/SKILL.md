@@ -23,54 +23,36 @@ hooks:
 
 # Incremental Workflow
 
-Autonomously implement ALL features until complete. Work through features by priority, committing after each one.
+Implement ONE feature, verify it, commit, and exit. The orchestrator will call you repeatedly for each feature.
 
-## Session Start
+## Input
 
-### 1. Orient
+You will be given a specific feature ID to implement. Focus ONLY on that feature.
+
+## Workflow
+
+### 1. Ensure Clean State
 
 ```bash
-echo "=== Project Status ==="
-TOTAL=$(jq '.features | length' feature_list.json)
-DONE=$(jq '[.features[] | select(.passes == true)] | length' feature_list.json)
-echo "Progress: $DONE / $TOTAL features"
-echo ""
-echo "Git status:"
 git status --short
-echo "======================"
 ```
 
-### 2. Ensure Clean State
+If uncommitted changes exist, commit or discard them first.
 
-If uncommitted changes exist:
-- Review with `git diff`
-- Commit or discard
-- **Never start on dirty state**
-
-### 3. Start Environment
+### 2. Start Environment (if needed)
 
 ```bash
-./init.sh
+if [ -f init.sh ]; then ./init.sh; fi
 ```
 
-## Autonomous Loop
-
-**Repeat until all features pass:**
-
-### For Each Feature:
-
-#### 1. Select Next
+### 3. Get Feature Details
 
 ```bash
-NEXT=$(jq -r '[.features[] | select(.passes == false)] | sort_by(.priority) | .[0] | .id' feature_list.json)
-if [ "$NEXT" = "null" ] || [ -z "$NEXT" ]; then
-  echo "ALL FEATURES COMPLETE"
-  exit 0
-fi
-jq -r '.features[] | select(.id == "'$NEXT'") | "Implementing \(.id): \(.description)"' feature_list.json
+FEATURE_ID="[THE_FEATURE_ID]"  # Use the ID you were given
+jq -r '.features[] | select(.id == "'$FEATURE_ID'")' feature_list.json
 ```
 
-#### 2. Implement
+### 4. Implement
 
 Write minimal code for THIS feature only.
 
@@ -78,71 +60,54 @@ Write minimal code for THIS feature only.
 - No scope creep
 - No "while I'm here" fixes
 - No premature optimization
+- Focus ONLY on the assigned feature
 
-#### 3. Verify
+### 5. Verify
 
 Test against the feature's `verification` steps:
-1. Read verification steps from feature_list.json
+1. Read verification steps from the feature
 2. Actually perform each step
 3. If any fails, fix before proceeding
 
-#### 4. Mark Complete
+### 6. Mark Complete
 
 ```bash
-FEATURE_ID="F00X"  # Replace with actual ID
 jq '(.features[] | select(.id == "'$FEATURE_ID'")) |= . + {"passes": true, "completed_at": "'"$(date -Iseconds)"'"}' feature_list.json > tmp.json && mv tmp.json feature_list.json
 ```
 
-#### 5. Commit
+### 7. Commit
 
 ```bash
 git add -A
-git commit -m "feat($FEATURE_ID): [description]
+git commit -m "feat($FEATURE_ID): [short description]
 
 Co-Authored-By: Claude <noreply@anthropic.com>"
 ```
 
-#### 6. Log
+### 8. Log Progress
 
 Append to `claude-progress.txt`:
 ```
 - [TIMESTAMP] Completed $FEATURE_ID: [description] ([commit hash])
 ```
 
-#### 7. Continue to Next Feature
+### 9. Exit
 
-Do NOT stop. Immediately proceed to the next incomplete feature.
-
-## Stopping Conditions
-
-Only stop when:
-1. **All features pass** - Project complete
-2. **Unrecoverable blocker** - Document the issue and stop
-3. **External dependency required** - Document what's needed
-
-If a feature is blocked but others can proceed, skip it and continue. Log the blocker.
+Return to the orchestrator with:
+- **SUCCESS**: Feature ID completed
+- **BLOCKED**: Feature ID blocked, reason: [explanation]
 
 ## Rules
 
 ### DO:
-- ✅ Keep going until ALL features complete
+- ✅ Implement ONLY the assigned feature
 - ✅ Test before marking complete
-- ✅ Commit after each feature
-- ✅ Skip blocked features, continue with others
-- ✅ Log everything
+- ✅ Commit before exiting
+- ✅ Exit after ONE feature
 
 ### DON'T:
-- ❌ Stop after one feature (keep going!)
+- ❌ Implement multiple features
 - ❌ Mark complete without testing
 - ❌ Edit feature descriptions (hook blocks this)
-- ❌ Leave uncommitted changes
-- ❌ Give up on first error
-
-## Final Output
-
-When ALL features complete (or all remaining are blocked):
-
-- Total features completed this session
-- Final progress (X / Y total)
-- Any blocked features with reasons
-- Project status: COMPLETE or BLOCKED
+- ❌ Leave uncommitted changes (hook blocks this)
+- ❌ Continue to next feature (orchestrator handles that)
