@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo.svg" alt="Harness Logo" width="200" height="200">
+</p>
+
 # Harness
 
 A Claude Code plugin for autonomous multi-session development. Based on [Anthropic's research on effective harnesses for long-running agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents).
