@@ -20,20 +20,43 @@ Large projects can't be completed in a single session. This plugin provides a fr
 
 ## Installation
 
-### Option A: Plugin Installation (with --plugin-dir)
+### Option A: Add as Marketplace (Recommended)
 
-Use the `--plugin-dir` flag to load the plugin directly:
+This method persists across sessions and can be shared with your team.
+
+**Step 1: Add the marketplace**
+
+```bash
+# Inside Claude Code
+/plugin marketplace add mikkelkrogsholm/harness
+```
+
+**Step 2: Install the plugin**
+
+```bash
+# Install for yourself (user scope - works across all projects)
+/plugin install harness@mikkelkrogsholm-harness
+
+# OR install for this project only (project scope - shared with team via git)
+/plugin install harness@mikkelkrogsholm-harness --scope project
+```
+
+Commands will be namespaced as `/harness:init`, `/harness:continue`, `/harness:status`.
+
+### Option B: Test with --plugin-dir (Session Only)
+
+For quick testing without permanent installation:
 
 ```bash
 git clone https://github.com/mikkelkrogsholm/harness /tmp/harness-plugin
 claude --plugin-dir /tmp/harness-plugin
 ```
 
-Commands will be namespaced as `/harness:init`, `/harness:continue`, `/harness:status`.
+Note: This only loads the plugin for that session.
 
-### Option B: Manual Installation (copy to .claude/)
+### Option C: Manual Installation (Copy to .claude/)
 
-For simpler slash command names and no plugin setup required:
+For maximum control or when marketplace isn't available:
 
 ```bash
 # Clone the repo
@@ -49,22 +72,25 @@ cp /tmp/harness-plugin/scripts/*.sh .claude/scripts/
 
 # Make scripts executable
 chmod +x .claude/scripts/*.sh
-```
 
-**Important**: For manual installation, update hook paths in the agent files:
-
-```bash
-# In .claude/agents/project-bootstrap.md and .claude/agents/incremental-workflow.md
-# Change: ${CLAUDE_PLUGIN_ROOT}/scripts/
-# To: .claude/scripts/
-```
-
-Or use this sed command:
-```bash
+# Fix hook paths for manual installation
 sed -i '' 's|\${CLAUDE_PLUGIN_ROOT}/scripts/|.claude/scripts/|g' .claude/agents/*.md
 ```
 
 Commands will be `/harness-init`, `/harness-continue`, `/harness-status` (no namespace prefix).
+
+### Option D: Project-Level Plugin Configuration
+
+Add to your project's `.claude/settings.json` to auto-prompt team members:
+
+```json
+{
+  "extraKnownMarketplaces": ["mikkelkrogsholm/harness"],
+  "enabledPlugins": ["harness@mikkelkrogsholm-harness"]
+}
+```
+
+When team members open the project and trust the folder, they'll be prompted to install.
 
 ## Usage
 
@@ -258,7 +284,7 @@ harness/
 
 ## Requirements
 
-- Claude Code 1.0.33+ (for subagents with hooks)
+- Claude Code 1.0.33+ (for plugins with agents and hooks)
 - Git (for commit hooks)
 - jq (for JSON processing in status commands)
 
@@ -289,6 +315,21 @@ jq '.features[] | select(.passes) | .id + ": " + .description' feature_list.json
 
 # See documentation for a specific feature
 jq '.features[] | select(.id == "F001") | .documentation' feature_list.json
+```
+
+### Managing the Plugin
+```bash
+# Update to latest version
+/plugin update harness@mikkelkrogsholm-harness
+
+# Disable temporarily
+/plugin disable harness@mikkelkrogsholm-harness
+
+# Re-enable
+/plugin enable harness@mikkelkrogsholm-harness
+
+# Uninstall
+/plugin uninstall harness@mikkelkrogsholm-harness
 ```
 
 ## License
