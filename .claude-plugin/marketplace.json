@@ -1,0 +1,21 @@
+{
+  "name": "mikkelkrogsholm-harness",
+  "description": "Harness plugin for autonomous multi-session development",
+  "plugins": [
+    {
+      "name": "harness",
+      "description": "Framework for autonomous multi-session development. Breaks projects into discrete features (50-200) and implements them one at a time with fresh context between sessions.",
+      "version": "1.0.0",
+      "source": "./",
+      "homepage": "https://github.com/mikkelkrogsholm/harness",
+      "keywords": [
+        "autonomous",
+        "long-running",
+        "incremental",
+        "multi-session",
+        "features",
+        "workflow"
+      ]
+    }
+  ]
+}
