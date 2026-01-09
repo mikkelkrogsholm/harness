@@ -1,14 +1,7 @@
 ---
 name: incremental-workflow
 description: Work on a long-running project incrementally. Use when feature_list.json exists and user wants to continue, make progress, implement features, or work on the project.
-context: fork
-allowed-tools:
-  - Read
-  - Write
-  - Edit
-  - Bash
-  - Grep
-  - Glob
+tools: Read, Write, Edit, Bash, Grep, Glob, WebFetch
 hooks:
   PreToolUse:
     - matcher: "Write|Edit"
@@ -52,30 +45,45 @@ FEATURE_ID="[THE_FEATURE_ID]"  # Use the ID you were given
 jq -r '.features[] | select(.id == "'$FEATURE_ID'")' feature_list.json
 ```
 
-### 4. Implement
+### 4. Consult Documentation
 
-Write minimal code for THIS feature only.
+**BEFORE implementing**, check the feature's `documentation` field:
+
+1. Read the documentation URLs from the feature
+2. Use `WebFetch` to retrieve relevant sections from each URL
+3. Focus on:
+   - Installation/setup instructions
+   - API usage patterns
+   - Configuration options
+   - Common pitfalls to avoid
+
+This ensures you implement the feature correctly using official guidance.
+
+### 5. Implement
+
+Write minimal code for THIS feature only, following the patterns from the documentation.
 
 **Rules:**
 - No scope creep
 - No "while I'm here" fixes
 - No premature optimization
 - Focus ONLY on the assigned feature
+- Follow official documentation patterns
 
-### 5. Verify
+### 6. Verify
 
 Test against the feature's `verification` steps:
 1. Read verification steps from the feature
 2. Actually perform each step
 3. If any fails, fix before proceeding
 
-### 6. Mark Complete
+### 7. Mark Complete
 
 ```bash
 jq '(.features[] | select(.id == "'$FEATURE_ID'")) |= . + {"passes": true, "completed_at": "'"$(date -Iseconds)"'"}' feature_list.json > tmp.json && mv tmp.json feature_list.json
 ```
 
-### 7. Commit
+### 8. Commit
 
 ```bash
 git add -A
@@ -84,14 +92,14 @@ git commit -m "feat($FEATURE_ID): [short description]
 Co-Authored-By: Claude <noreply@anthropic.com>"
 ```
 
-### 8. Log Progress
+### 9. Log Progress
 
 Append to `claude-progress.txt`:
 ```
 - [TIMESTAMP] Completed $FEATURE_ID: [description] ([commit hash])
 ```
 
-### 9. Exit
+### 10. Exit
 
 Return to the orchestrator with:
 - **SUCCESS**: Feature ID completed
@@ -100,14 +108,16 @@ Return to the orchestrator with:
 ## Rules
 
 ### DO:
-- ✅ Implement ONLY the assigned feature
-- ✅ Test before marking complete
-- ✅ Commit before exiting
-- ✅ Exit after ONE feature
+- Consult documentation URLs before implementing
+- Implement ONLY the assigned feature
+- Test before marking complete
+- Commit before exiting
+- Exit after ONE feature
 
 ### DON'T:
-- ❌ Implement multiple features
-- ❌ Mark complete without testing
-- ❌ Edit feature descriptions (hook blocks this)
-- ❌ Leave uncommitted changes (hook blocks this)
-- ❌ Continue to next feature (orchestrator handles that)
+- Implement multiple features
+- Skip reading the documentation
+- Mark complete without testing
+- Edit feature descriptions (hook blocks this)
+- Leave uncommitted changes (hook blocks this)
+- Continue to next feature (orchestrator handles that)

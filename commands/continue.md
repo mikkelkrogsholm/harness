@@ -25,7 +25,7 @@ Execute this loop until no incomplete features remain:
 ```
 WHILE incomplete features exist:
     1. Get next incomplete feature (lowest priority number first)
-    2. Use the incremental-workflow skill to implement it
+    2. Use the incremental-workflow agent to implement it
     3. Check result
     4. CONTINUE to next feature (do NOT stop)
 END WHILE
@@ -41,11 +41,11 @@ If this returns null/empty → ALL DONE. Report completion and stop.
 
 ### Implement Feature
 
-Use the `incremental-workflow` skill:
+Use the `incremental-workflow` agent:
 
 > Implement feature [ID]: [DESCRIPTION]
 
-The skill runs in a forked context. It will implement, verify, commit, and return.
+The agent runs in its own context. It will implement, verify, commit, and return.
 
 ### After Each Feature
 
@@ -56,8 +56,8 @@ The skill runs in a forked context. It will implement, verify, commit, and retur
 ## Critical Rules
 
 1. **KEEP GOING** - Do not stop after one feature
-2. **ONE AT A TIME** - Use the skill once per feature (fresh context each time)
-3. **NO DIRECT IMPLEMENTATION** - Always delegate to the skill, never implement features yourself
+2. **ONE AT A TIME** - Use the agent once per feature (fresh context each time)
+3. **NO DIRECT IMPLEMENTATION** - Always delegate to the agent, never implement features yourself
 4. **LOOP UNTIL DONE** - Only stop when ALL features pass or all remaining are blocked
 
 ## Completion

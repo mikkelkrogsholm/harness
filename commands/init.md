@@ -13,13 +13,13 @@ The user wants to build: **$ARGUMENTS**
 
 ## Instructions
 
-Use the `project-bootstrap` skill to create the project scaffolding:
+Use the `project-bootstrap` agent to create the project scaffolding:
 
 1. **feature_list.json** - Comprehensive feature breakdown (50-200 features)
 2. **claude-progress.txt** - Session log for tracking progress
 3. **init.sh** - Development environment setup script
 
-The skill runs in a forked context and will automatically commit the files when complete.
+The agent runs in its own context and will automatically commit the files when complete.
 
 ## After Initialization
 

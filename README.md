@@ -11,6 +11,8 @@ A Claude Code plugin for autonomous multi-session development. Based on [Anthrop
 Large projects can't be completed in a single session. This plugin provides a framework for:
 
 - **Breaking work into discrete features** - 50-200 testable features per project
+- **Clarifying requirements upfront** - Asks questions before generating features
+- **Documentation-driven development** - Each feature includes relevant doc URLs
 - **Autonomous execution** - Runs through ALL features without human intervention
 - **Atomic commits** - Each feature gets its own commit
 - **Preserving original specifications** - Hooks prevent editing feature descriptions
@@ -18,22 +20,51 @@ Large projects can't be completed in a single session. This plugin provides a fr
 
 ## Installation
 
-### From Local Directory
+### Option A: Plugin Installation (with --plugin-dir)
+
+Use the `--plugin-dir` flag to load the plugin directly:
 
 ```bash
-claude plugin install /path/to/harness
+git clone https://github.com/mikkelkrogsholm/harness /tmp/harness-plugin
+claude --plugin-dir /tmp/harness-plugin
 ```
 
-Or in Claude Code interactive mode:
-```
-/plugin install /path/to/harness
-```
+Commands will be namespaced as `/harness:init`, `/harness:continue`, `/harness:status`.
 
-### From GitHub
+### Option B: Manual Installation (copy to .claude/)
+
+For simpler slash command names and no plugin setup required:
 
 ```bash
-claude plugin install https://github.com/mikkelkrogsholm/harness
+# Clone the repo
+git clone https://github.com/mikkelkrogsholm/harness /tmp/harness-plugin
+
+# Create .claude directories in your project
+mkdir -p .claude/{commands,agents,scripts}
+
+# Copy components
+cp /tmp/harness-plugin/commands/*.md .claude/commands/
+cp /tmp/harness-plugin/agents/*.md .claude/agents/
+cp /tmp/harness-plugin/scripts/*.sh .claude/scripts/
+
+# Make scripts executable
+chmod +x .claude/scripts/*.sh
 ```
+
+**Important**: For manual installation, update hook paths in the agent files:
+
+```bash
+# In .claude/agents/project-bootstrap.md and .claude/agents/incremental-workflow.md
+# Change: ${CLAUDE_PLUGIN_ROOT}/scripts/
+# To: .claude/scripts/
+```
+
+Or use this sed command:
+```bash
+sed -i '' 's|\${CLAUDE_PLUGIN_ROOT}/scripts/|.claude/scripts/|g' .claude/agents/*.md
+```
+
+Commands will be `/harness-init`, `/harness-continue`, `/harness-status` (no namespace prefix).
 
 ## Usage
 
@@ -43,10 +74,23 @@ claude plugin install https://github.com/mikkelkrogsholm/harness
 /harness:init Build a task management app with auth, projects, and real-time sync
 ```
 
-This creates:
-- `feature_list.json` - All features with status tracking
-- `claude-progress.txt` - Session log
-- `init.sh` - Development environment setup
+(Or `/harness-init` for manual installation)
+
+The bootstrap agent will:
+
+1. **Ask clarifying questions** about:
+   - Tech stack (frontend, backend, database)
+   - Authentication method
+   - Scope (MVP vs full product)
+   - Third-party integrations
+   - Special requirements
+
+2. **Research documentation** for chosen technologies
+
+3. **Create files** with documentation URLs attached to each feature:
+   - `feature_list.json` - All features with status tracking and doc URLs
+   - `claude-progress.txt` - Session log with assumptions documented
+   - `init.sh` - Development environment setup
 
 ### 2. Continue Development
 
@@ -54,14 +98,17 @@ This creates:
 /harness:continue
 ```
 
+(Or `/harness-continue` for manual installation)
+
 This runs autonomously until complete:
 
 ```
 WHILE incomplete features exist:
     1. Get next feature (by priority)
-    2. Call incremental-workflow skill (fresh forked context)
-    3. Skill implements, verifies, commits
-    4. Continue to next feature
+    2. Call incremental-workflow agent (fresh context)
+    3. Agent consults documentation URLs
+    4. Agent implements, verifies, commits
+    5. Continue to next feature
 END WHILE
 ```
 
@@ -72,6 +119,8 @@ Stops only when all features pass or all remaining are blocked.
 ```
 /harness:status
 ```
+
+(Or `/harness-status` for manual installation)
 
 Shows progress without making changes:
 - Overall completion percentage
@@ -84,20 +133,42 @@ Shows progress without making changes:
 
 ### Orchestrator Pattern
 
-The `/harness:continue` command acts as an **orchestrator** that loops through features. For each feature, it delegates to the `incremental-workflow` skill which runs in a **forked context** (`context: fork`). This gives each feature implementation:
+The `/harness:continue` command acts as an **orchestrator** that loops through features. For each feature, it delegates to the `incremental-workflow` agent which runs in its own **isolated context**. This gives each feature implementation:
 
 - Fresh context window (no token buildup)
 - Isolated execution
 - Clean return to orchestrator
 
-This is the same pattern as the proven [Motlin /todo-all method](https://motlin.com/blog/claude-code-running-for-hours), but using skills with `context: fork` instead of agents.
+This is the same pattern as the proven [Motlin /todo-all method](https://motlin.com/blog/claude-code-running-for-hours).
 
-### Two Skills
+### Two Agents
 
-| Skill | Purpose | Hooks |
+| Agent | Purpose | Hooks |
 |-------|---------|-------|
-| `project-bootstrap` | Creates feature list, progress log, init script | Stop: Auto-commits bootstrap files |
-| `incremental-workflow` | Implements ONE feature per invocation (forked) | PreToolUse: Blocks editing feature specs<br>Stop: Requires clean git state |
+| `project-bootstrap` | Asks questions, researches docs, creates feature list | Stop: Auto-commits bootstrap files |
+| `incremental-workflow` | Consults docs, implements ONE feature per invocation | PreToolUse: Blocks editing feature specs<br>Stop: Requires clean git state |
+
+### Documentation-Driven Development
+
+Each feature includes a `documentation` field with relevant URLs:
+
+```json
+{
+  "id": "F001",
+  "description": "Set up Next.js 14 project with App Router",
+  "documentation": [
+    "https://nextjs.org/docs/getting-started/installation",
+    "https://nextjs.org/docs/app/building-your-application/routing"
+  ],
+  "verification": ["npm run dev works", "TypeScript compiles"],
+  "passes": false
+}
+```
+
+The `incremental-workflow` agent **fetches and reads these docs** before implementing each feature, ensuring:
+- Correct API usage
+- Following official patterns
+- Avoiding common pitfalls
 
 ### Hook Enforcement
 
@@ -121,30 +192,49 @@ The plugin uses hooks to enforce discipline:
 
 | File | Purpose |
 |------|---------|
-| `feature_list.json` | Feature tracking with status, priority, verification steps |
-| `claude-progress.txt` | Session-by-session log of what was accomplished |
+| `feature_list.json` | Feature tracking with status, priority, verification steps, and documentation URLs |
+| `claude-progress.txt` | Session-by-session log with assumptions documented |
 | `init.sh` | Script to set up development environment |
 
 ### Feature Structure
 
 ```json
 {
-  "id": "F001",
-  "priority": 1,
-  "category": "core",
-  "description": "Clear, testable description",
-  "verification": [
-    "Step to verify it works",
-    "Another verification step"
+  "project": "Task Management App",
+  "tech_stack": {
+    "frontend": "Next.js 14",
+    "backend": "Node.js with tRPC",
+    "database": "PostgreSQL with Drizzle ORM",
+    "auth": "Better Auth"
+  },
+  "assumptions": [
+    "Single-tenant application",
+    "English only (no i18n)"
   ],
-  "passes": false,
-  "completed_at": null
+  "features": [
+    {
+      "id": "F001",
+      "priority": 1,
+      "category": "core",
+      "description": "Clear, testable description",
+      "verification": [
+        "Step to verify it works",
+        "Another verification step"
+      ],
+      "documentation": [
+        "https://official-docs.com/getting-started",
+        "https://official-docs.com/api-reference"
+      ],
+      "passes": false,
+      "completed_at": null
+    }
+  ]
 }
 ```
 
 Categories: `core`, `functional`, `ui`, `integration`, `polish`
 
-Priority: 1 (critical) → 5 (nice-to-have)
+Priority: 1 (critical) -> 5 (nice-to-have)
 
 ## Directory Structure
 
@@ -152,11 +242,9 @@ Priority: 1 (critical) → 5 (nice-to-have)
 harness/
 ├── .claude-plugin/
 │   └── plugin.json          # Plugin manifest
-├── skills/
-│   ├── project-bootstrap/
-│   │   └── SKILL.md         # Bootstrap skill
-│   └── incremental-workflow/
-│       └── SKILL.md         # Workflow skill
+├── agents/
+│   ├── project-bootstrap.md # Bootstrap agent (asks questions, creates features)
+│   └── incremental-workflow.md # Workflow agent (implements features)
 ├── commands/
 │   ├── init.md              # /harness:init
 │   ├── continue.md          # /harness:continue
@@ -170,7 +258,7 @@ harness/
 
 ## Requirements
 
-- Claude Code 2.1.0+ (for skill hooks and `context: fork`)
+- Claude Code 1.0.33+ (for subagents with hooks)
 - Git (for commit hooks)
 - jq (for JSON processing in status commands)
 
@@ -198,6 +286,9 @@ jq '[.features[] | select(.passes)] | length' feature_list.json
 
 # See all completed features
 jq '.features[] | select(.passes) | .id + ": " + .description' feature_list.json
+
+# See documentation for a specific feature
+jq '.features[] | select(.id == "F001") | .documentation' feature_list.json
 ```
 
 ## License
